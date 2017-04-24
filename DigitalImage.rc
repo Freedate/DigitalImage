@@ -154,10 +154,23 @@ BEGIN
         MENUITEM "Histogram Equalization(RGB)", ID_HISTOGRAM_EQUALIZATION_RGB
         MENUITEM "Histogram Specification",     ID_HISTOGRAM_SPECIFICATION
         MENUITEM SEPARATOR
-        POPUP "Blurring"
+        POPUP "Blurring(Smoothing)"
         BEGIN
-            MENUITEM "3X3",                         ID_BLURRING_3X3
-            MENUITEM "5X5",                         ID_BLURRING_5X5
+            POPUP "Average"
+            BEGIN
+                MENUITEM "3x3",                         ID_AVERAGE_3X3
+                MENUITEM "5x5",                         ID_AVERAGE_5X5
+            END
+            POPUP "Gaussian"
+            BEGIN
+                MENUITEM "3x3",                         ID_GAUSSIAN_3X3
+                MENUITEM "5x5",                         ID_GAUSSIAN_5X5
+            END
+            POPUP "Median"
+            BEGIN
+                MENUITEM "3x3",                         ID_MEDIAN_3X3
+                MENUITEM "5x5",                         ID_MEDIAN_5X5
+            END
         END
     END
 END

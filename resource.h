@@ -28,13 +28,25 @@
 #define ID_BLURRING_7X7                 32790
 #define ID_BLURRING3X3_3X3              32791
 #define ID_BLURRING_5X6                 32792
+#define ID_32793                        32793
+#define ID_SMOOTHINGFILTER_AVERAG       32794
+#define ID_SMOOTHINGFILTER_GAUSSIANFILTER 32795
+#define ID_SMOOTHINGFILTER_MEDIANFILTER 32796
+#define ID_AVERAGE_3X3                  32797
+#define ID_AVERAGE_5X5                  32798
+#define ID_Av_5X5                       32799
+#define ID_BLURRING_MEDIAN              32800
+#define ID_GAUSSIAN_3X3                 32801
+#define ID_GAUSSIAN_5X5                 32802
+#define ID_MEDIAN_3X3                   32803
+#define ID_MEDIAN_5X5                   32804
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        310
-#define _APS_NEXT_COMMAND_VALUE         32793
+#define _APS_NEXT_COMMAND_VALUE         32805
 #define _APS_NEXT_CONTROL_VALUE         1000
 #define _APS_NEXT_SYMED_VALUE           310
 #endif

@@ -34,8 +34,10 @@ BEGIN_MESSAGE_MAP(CDigitalImageView, CView)
 	ON_COMMAND(ID_HISTOGRAM_EQUALIZATION, &CDigitalImageView::OnHistogramEqualization)
 	ON_COMMAND(ID_HISTOGRAM_EQUALIZATION_RGB, &CDigitalImageView::OnHistogramEqualizationRgb)
 	ON_COMMAND(ID_HISTOGRAM_SPECIFICATION, &CDigitalImageView::OnHistogramSpecification)
-	ON_COMMAND(ID_BLURRING_3X3, &CDigitalImageView::OnBlurring3x3)
-	ON_COMMAND(ID_BLURRING_5X5, &CDigitalImageView::OnBlurring5x5)
+	ON_COMMAND(ID_AVERAGE_3X3, &CDigitalImageView::OnAverage3x3)
+	ON_COMMAND(ID_AVERAGE_5X5, &CDigitalImageView::OnAverage5x5)
+	ON_COMMAND(ID_MEDIAN_3X3, &CDigitalImageView::OnMedian3x3)
+	ON_COMMAND(ID_MEDIAN_5X5, &CDigitalImageView::OnMedian5x5)
 END_MESSAGE_MAP()
 
 // CDigitalImageView construction/destruction
@@ -55,7 +57,7 @@ float** satuBuffer;
 float** intenBuffer;
 
 float** bluringBuffer;
-
+RGBQUAD** rgbFilteringBuffer;
 
 //float* histogram;
 int histogram[256];
@@ -81,6 +83,8 @@ CDigitalImageView::CDigitalImageView()
 	rgbBufferHE = nullptr;
 
 	bluringBuffer = nullptr;
+	rgbFilteringBuffer = nullptr;
+
 	rgbBufferFilter = nullptr;
 	//histogram = nullptr;
 }
@@ -127,6 +131,14 @@ CDigitalImageView::~CDigitalImageView()
 		delete[] bluringBuffer;
 	}
 
+	if (rgbFilteringBuffer != nullptr) {
+		for (int i = 0; i < imgHeight; i++) {
+			delete[] rgbFilteringBuffer[i];
+		}
+		delete[] rgbFilteringBuffer;
+	}
+
+
 	if (rgbBufferFilter != nullptr) {
 		for (int i = 0; i < imgHeight; i++) {
 			delete[] rgbBufferFilter[i];
@@ -170,18 +182,18 @@ void CDigitalImageView::OnDraw(CDC* pDC)
 					pDC->SetPixel(p, RGB(hueBuffer[i][j], hueBuffer[i][j], hueBuffer[i][j]));
 
 					p.x = j + imgWidth + 10;
-					p.y = i + imgWidth + 10;
+					p.y = i + imgWidth + 30;
 					pDC->SetPixel(p, RGB(satuBuffer[i][j], satuBuffer[i][j], satuBuffer[i][j]));
 
 					p.x = j;
-					p.y = i + imgWidth + 10;
+					p.y = i + imgWidth + 30;
 					pDC->SetPixel(p, RGB(intenBuffer[i][j], intenBuffer[i][j], intenBuffer[i][j]));
 					break;
 
 				case 3:
 
 					p.x = j + imgWidth + 10 + imgWidth + 10;
-					p.y = i + imgWidth + 10;
+					p.y = i + imgWidth + 30;
 					pDC->SetPixel(p, RGB(intenBuffer[i][j], intenBuffer[i][j], intenBuffer[i][j]));
 					break;
 
@@ -194,15 +206,47 @@ void CDigitalImageView::OnDraw(CDC* pDC)
 
 				case 5:
 					p.x = j + imgWidth + 10 + imgWidth + 10;
-					p.y = i + imgWidth + 10;
-					pDC->SetPixel(p, RGB(bluringBuffer[i][j], bluringBuffer[i][j], bluringBuffer[i][j]));
-					//pDC->SetPixel(p, RGB(rgbBufferFilter[i][j].rgbRed, rgbBufferFilter[i][j].rgbGreen, rgbBufferFilter[i][j].rgbBlue));
+					p.y = i + imgWidth + 30;
+					pDC->SetPixel(p, RGB(rgbFilteringBuffer[i][j].rgbRed, rgbFilteringBuffer[i][j].rgbGreen, rgbFilteringBuffer[i][j].rgbBlue));
 					break;
 					
 
 				}
 
 			}
+		}
+		switch (viewType) {
+		case 1:
+			p.x = imgWidth / 2;
+			p.y = imgHeight + 5;
+			pDC->SetTextColor(RGB(0, 0, 0));
+			pDC->SetBkColor(RGB(255, 255, 255));
+			pDC->SetTextAlign(TA_CENTER);
+			pDC->TextOut(p.x,p.y, "ORIGINAL IMAGE");
+			break;
+		case 2:
+			p.x = imgWidth + imgWidth/2 + 10;
+			p.y = imgHeight + 5;
+			pDC->SetTextColor(RGB(0, 0, 0));
+			pDC->SetBkColor(RGB(255, 255, 255));
+			pDC->SetTextAlign(TA_CENTER);
+			pDC->TextOut(p.x, p.y, "HUE");
+
+			p.x = imgWidth + imgWidth / 2 + 10;
+			p.y = imgHeight + 30 + imgHeight+5;
+			pDC->SetTextColor(RGB(0, 0, 0));
+			pDC->SetBkColor(RGB(255, 255, 255));
+			pDC->SetTextAlign(TA_CENTER);
+			pDC->TextOut(p.x, p.y, "SATURATION");
+
+			p.x = imgWidth / 2;
+			p.y = imgHeight + 30 + imgHeight + 5;
+			pDC->SetTextColor(RGB(0, 0, 0));
+			pDC->SetBkColor(RGB(255, 255, 255));
+			pDC->SetTextAlign(TA_CENTER);
+			pDC->TextOut(p.x, p.y, "INTENSITY");
+			break;
+
 		}
 	}
 
@@ -567,62 +611,6 @@ void CDigitalImageView::OnHistogramSpecification()
 }
 
 
-void CDigitalImageView::OnBlurring3x3()
-{
-	OnRgbToHsi();
-
-	float mask3[3][3] = { { 1.0f / 16.0f, 1.0f / 8.0f, 1.0f / 16.0f },{ 1.0f / 8.0f,1.0f / 4.0f,1.0f / 8.0f },{ 1.0f / 16.0f,1.0f / 8.0f,1.0f / 16.0f } };
-	
-/*
-	float sigma = 3.0f;
-	double s = 2.0*sigma*sigma;
-	for (int i = -1; i <= 1; i++) {
-		for (int j = -1; j<=1; j++) {
-			mask3[i+1][j+1] = (1 / sqrt(s*3.14))*exp(-(((i)*(i) + (j)*(j)) / s));
-		}
-	}
-	*/
-
-
-
-	if (bluringBuffer != NULL) {
-		for (int i = 0; i < imgHeight; i++) {
-			delete[] bluringBuffer[i];
-		}
-		delete[] bluringBuffer;
-	}
-
-	bluringBuffer = new float*[imgHeight];
-	for (int i = 0; i < imgHeight; i++) {
-		bluringBuffer[i] = new float[imgWidth];
-	}
-
-	int a, b;
-
-	for (int i = 0; i < imgHeight; i++) {
-		for (int j = 0; j < imgWidth; j++) {
-			a = i;
-			b = j;
-			if (i == 0) {
-				a = 1;
-			}
-			if (j == 0) {
-				b = 1;
-			}
-			if (i == imgHeight - 1) {
-				a = imgHeight-2;
-			}
-			if (j == imgWidth - 1) {
-				b = imgWidth - 2;
-			}
-			bluringBuffer[i][j] = intenBuffer[a - 1][b - 1] * mask3[0][0] + intenBuffer[a - 1][b] * mask3[0][1] + intenBuffer[a - 1][b + 1] * mask3[0][2] + intenBuffer[a][b - 1] * mask3[1][0] + intenBuffer[a][b] * mask3[1][1] + intenBuffer[a][b + 1] * mask3[1][2] + intenBuffer[a + 1][b - 1] * mask3[2][0] + intenBuffer[a + 1][b] * mask3[2][1] + intenBuffer[a + 1][b + 1] * mask3[2][2];
-		}
-	}
-	OnHsiToRgb();
-
-	viewType = 5;
-	Invalidate(false);
-}
 
 void CDigitalImageView::OnHsiToRgb() {
 
@@ -652,84 +640,266 @@ void CDigitalImageView::OnHsiToRgb() {
 
 }
 
-void CDigitalImageView::OnBlurring5x5()
+
+
+void CDigitalImageView::OnAverage3x3()
 {
-	
-	OnRgbToHsi();
 
-	//float mask5[5][5] = { { 2.0f / 159.0f, 4.0f / 159.0f ,5.0f / 159.0f , 4.0f / 159.0f , 2.0f / 159.0f },{ 4.0f / 159.0f , 9.0f / 159.0f , 12.0f / 159.0f , 9.0f / 159.0f , 4.0f / 159.0f },{ 5.0f / 159.0f, 12.0f / 159.0f, 15.0f / 159.0f, 12.0f / 159.0f, 5.0f / 159.0f },{ 4.0f / 159.0f , 9.0f / 159.0f , 12.0f / 159.0f , 9.0f / 159.0f , 4.0f / 159.0f } ,{ 2.0f / 159.0f, 4.0f / 159.0f ,5.0f / 159.0f , 4.0f / 159.0f , 2.0f / 159.0f } };
-	float mask5[5][5] = { {0.03,0.013,0.022,0.013,0.03},{0.013,0.059,0.097,0.059,0.013},{0.022,0.097,0.159,0.097,0.022},{0.013,0.059,0.097,0.059,0.013},{0.03,0.013,0.022,0.013,0.03} };
-	
+	float mask3[3][3] = { { 1.0f / 9.0f, 1.0f / 9.0f, 1.0f / 9.0f },{ 1.0f / 9.0f,1.0f / 9.0f,1.0f / 9.0f },{ 1.0f / 9.0f,1.0f / 9.0f,1.0f / 9.0f } };
 
-	/*float sigma =8.0f;
-	double s = 2.0*sigma*sigma;
-	for (int i = -2; i <= 2; i++) {
-		for (int j = -2; j <= 2; j++) {
-			mask5[i + 2][j + 2] = (1 / sqrt(s*3.14))*exp(-(((i)*(i)+(j)*(j)) / s));
-		}
-	}*/
-
-	if (bluringBuffer != NULL) {
+	if (rgbFilteringBuffer != NULL) {
 		for (int i = 0; i < imgHeight; i++) {
-			delete[] bluringBuffer[i];
+			delete[] rgbFilteringBuffer[i];
 		}
-		delete[] bluringBuffer;
+		delete[] rgbFilteringBuffer;
 	}
 
-	bluringBuffer = new float*[imgHeight];
+	rgbFilteringBuffer = new RGBQUAD*[imgHeight];
 	for (int i = 0; i < imgHeight; i++) {
-		bluringBuffer[i] = new float[imgWidth];
+		rgbFilteringBuffer[i] = new RGBQUAD[imgWidth];
 	}
 
 	int a, b;
 
 	for (int i = 0; i < imgHeight; i++) {
 		for (int j = 0; j < imgWidth; j++) {
+			rgbFilteringBuffer[i][j].rgbRed = 0;
+			rgbFilteringBuffer[i][j].rgbBlue = 0;
+			rgbFilteringBuffer[i][j].rgbGreen = 0;
 			a = i;
 			b = j;
-			if (i == 0 || i==1) {
+			if (i == 0) {
+				a = 1;
+			}
+			if (j == 0) {
+				b = 1;
+			}
+			if (i == imgHeight - 1) {
+				a = imgHeight - 2;
+			}
+			if (j == imgWidth - 1) {
+				b = imgWidth - 2;
+			}
+
+			for (int x = 0; x < 3; x++) {
+				for (int y = 0; y < 3; y++) {
+					rgbFilteringBuffer[i][j].rgbRed += rgbBuffer[a - 1 + x][b - 1 + y].rgbRed * mask3[x][y];
+					rgbFilteringBuffer[i][j].rgbBlue += rgbBuffer[a - 1+ x][b - 1 + y].rgbBlue * mask3[x][y];
+					rgbFilteringBuffer[i][j].rgbGreen += rgbBuffer[a - 1 + x][b - 1 + y].rgbGreen * mask3[x][y];
+				}
+			}
+
+		}
+	}
+
+	viewType = 5;
+	Invalidate(false);
+
+
+}
+
+
+void CDigitalImageView::OnAverage5x5()
+{
+	float mask5[5][5];
+	for (int i=0; i < 5; i++) {
+		for (int j = 0; j < 5; j++) {
+			mask5[i][j] = 1.0f / 25.0f;
+		}
+	}
+
+
+	if (rgbFilteringBuffer != NULL) {
+		for (int i = 0; i < imgHeight; i++) {
+			delete[] rgbFilteringBuffer[i];
+		}
+		delete[] rgbFilteringBuffer;
+	}
+
+	rgbFilteringBuffer = new RGBQUAD*[imgHeight];
+	for (int i = 0; i < imgHeight; i++) {
+		rgbFilteringBuffer[i] = new RGBQUAD[imgWidth];
+	}
+
+	int a, b;
+
+
+	for (int i = 0; i < imgHeight; i++) {
+		for (int j = 0; j < imgWidth; j++) {
+			rgbFilteringBuffer[i][j].rgbRed = 0;
+			rgbFilteringBuffer[i][j].rgbBlue = 0;
+			rgbFilteringBuffer[i][j].rgbGreen = 0;
+			a = i;
+			b = j;
+			if (i == 0 || i == 1) {
 				a = 2;
 			}
-			if (j == 0|| i==1) {
+			if (j == 0 || i == 1) {
 				b = 2;
 			}
-			if (i == imgHeight - 1|| i==imgHeight-2) {
+			if (i == imgHeight - 1 || i == imgHeight - 2) {
 				a = imgHeight - 3;
 			}
 			if (j == imgWidth - 1 || j == imgHeight - 2) {
 				b = imgWidth - 3;
 			}
-			bluringBuffer[i][j] =
-				intenBuffer[a - 2][b - 2] * mask5[0][0] +
-				intenBuffer[a - 2][b - 1] * mask5[0][1] +
-				intenBuffer[a - 2][b] * mask5[0][2] +
-				intenBuffer[a - 2][b + 1] * mask5[0][3] +
-				intenBuffer[a - 2][b + 2] * mask5[0][4] +
-				intenBuffer[a - 1][b - 2] * mask5[1][0] +
-				intenBuffer[a - 1][b - 2] * mask5[1][1] +
-				intenBuffer[a - 1][b - 2] * mask5[1][2] +
-				intenBuffer[a - 1][b - 2] * mask5[1][3] +
-				intenBuffer[a - 1][b - 2] * mask5[1][4] +
-				intenBuffer[a][b - 2] * mask5[2][0] +
-				intenBuffer[a][b - 2] * mask5[2][1] +
-				intenBuffer[a][b - 2] * mask5[2][2] +
-				intenBuffer[a][b - 2] * mask5[2][3] +
-				intenBuffer[a][b - 2] * mask5[2][4] +
-				intenBuffer[a + 1][b - 2] * mask5[3][0] +
-				intenBuffer[a + 1][b - 2] * mask5[3][1] +
-				intenBuffer[a + 1][b - 2] * mask5[3][2] +
-				intenBuffer[a + 1][b - 2] * mask5[3][3] +
-				intenBuffer[a + 1][b - 2] * mask5[3][4] +
-				intenBuffer[a + 2][b - 2] * mask5[4][0] +
-				intenBuffer[a + 2][b - 2] * mask5[4][1] +
-				intenBuffer[a + 2][b - 2] * mask5[4][2] +
-				intenBuffer[a + 2][b - 2] * mask5[4][3] +
-				intenBuffer[a + 2][b - 2] * mask5[4][4];
+			
+			for (int x = 0; x < 5; x++) {
+				for (int y = 0; y < 5; y++) {
+					rgbFilteringBuffer[i][j].rgbRed += rgbBuffer[a - 2 + x][b - 2 + y].rgbRed * mask5[x][y];
+					rgbFilteringBuffer[i][j].rgbBlue += rgbBuffer[a - 2 + x][b - 2 + y].rgbBlue * mask5[x][y];
+					rgbFilteringBuffer[i][j].rgbGreen += rgbBuffer[a - 2 + x][b - 2 + y].rgbGreen * mask5[x][y];
+				}
+			}
 		}
 	}
-	//OnHsiToRgb();
+	viewType = 5;
+	Invalidate(false);
+
+}
+
+
+void CDigitalImageView::OnMedian3x3()
+{
+
+	if (rgbFilteringBuffer != NULL) {
+		for (int i = 0; i < imgHeight; i++) {
+			delete[] rgbFilteringBuffer[i];
+		}
+		delete[] rgbFilteringBuffer;
+	}
+
+	rgbFilteringBuffer = new RGBQUAD*[imgHeight];
+	for (int i = 0; i < imgHeight; i++) {
+		rgbFilteringBuffer[i] = new RGBQUAD[imgWidth];
+	}
+
+	int a, b;
+	int arrR[9];
+	int arrG[9];
+	int arrB[9];
+	for (int i = 0; i < imgHeight; i++) {
+		for (int j = 0; j < imgWidth; j++) {
+			rgbFilteringBuffer[i][j].rgbRed = 0;
+			rgbFilteringBuffer[i][j].rgbBlue = 0;
+			rgbFilteringBuffer[i][j].rgbGreen = 0;
+			a = i;
+			b = j;
+			if (i == 0) {
+				a = 1;
+			}
+			if (j == 0) {
+				b = 1;
+			}
+			if (i == imgHeight - 1) {
+				a = imgHeight - 2;
+			}
+			if (j == imgWidth - 1) {
+				b = imgWidth - 2;
+			}
+			
+			int k = 0;
+			int l = 0;
+			int m = 0;
+			for (int x = 0; x < 3; x++) {
+				for (int y = 0; y < 3; y++) {
+					arrR[k++] = rgbBuffer[a - 1 + x][b - 1 + y].rgbRed;
+					arrG[l++] = rgbBuffer[a - 1 + x][b - 1 + y].rgbGreen;
+					arrB[m++] = rgbBuffer[a - 1 + x][b - 1 + y].rgbBlue;
+				}
+			}
+			SelectionSort(arrR, 9);
+			SelectionSort(arrG, 9);
+			SelectionSort(arrB, 9);
+
+			rgbFilteringBuffer[a][b].rgbRed = arrR[4];
+			rgbFilteringBuffer[a][b].rgbGreen = arrG[4];
+			rgbFilteringBuffer[a][b].rgbBlue = arrB[4];
+
+		}
+	}
 
 	viewType = 5;
 	Invalidate(false);
-	
+}
+
+
+void CDigitalImageView::OnMedian5x5()
+{
+	if (rgbFilteringBuffer != NULL) {
+		for (int i = 0; i < imgHeight; i++) {
+			delete[] rgbFilteringBuffer[i];
+		}
+		delete[] rgbFilteringBuffer;
+	}
+
+	rgbFilteringBuffer = new RGBQUAD*[imgHeight];
+	for (int i = 0; i < imgHeight; i++) {
+		rgbFilteringBuffer[i] = new RGBQUAD[imgWidth];
+	}
+
+	int a, b;
+	int arrR[25];
+	int arrG[25];
+	int arrB[25];
+	for (int i = 0; i < imgHeight; i++) {
+		for (int j = 0; j < imgWidth; j++) {
+			rgbFilteringBuffer[i][j].rgbRed = 0;
+			rgbFilteringBuffer[i][j].rgbBlue = 0;
+			rgbFilteringBuffer[i][j].rgbGreen = 0;
+			a = i;
+			b = j;
+			if (i == 0 || i == 1) {
+				a = 2;
+			}
+			if (j == 0 || i == 1) {
+				b = 2;
+			}
+			if (i == imgHeight - 1 || i == imgHeight - 2) {
+				a = imgHeight - 3;
+			}
+			if (j == imgWidth - 1 || j == imgHeight - 2) {
+				b = imgWidth - 3;
+			}
+
+			int k = 0;
+			int l = 0;
+			int m = 0;
+			for (int x = 0; x < 5; x++) {
+				for (int y = 0; y < 5; y++) {
+					arrR[k++] = rgbBuffer[a - 2 + x][b - 2 + y].rgbRed;
+					arrG[l++] = rgbBuffer[a - 2 + x][b - 2 + y].rgbGreen;
+					arrB[m++] = rgbBuffer[a - 2 + x][b - 2 + y].rgbBlue;
+				}
+			}
+			SelectionSort(arrR, 25);
+			SelectionSort(arrG, 25);
+			SelectionSort(arrB, 25);
+
+			rgbFilteringBuffer[a][b].rgbRed = arrR[12];
+			rgbFilteringBuffer[a][b].rgbGreen = arrG[12];
+			rgbFilteringBuffer[a][b].rgbBlue = arrB[12];
+
+		}
+	}
+
+	viewType = 5;
+	Invalidate(false);
+}
+
+void CDigitalImageView::SelectionSort(int *arr, int n) {
+	int i, j, indexMin, temp;
+
+	for (i = 0; i < n - 1; i++) {
+		indexMin = i;
+		for (j = i + 1; j < n; j++) {
+			if (arr[j] < arr[indexMin]) {
+				indexMin = j;
+			}
+		}
+		temp = arr[indexMin];
+		arr[indexMin] = arr[i];
+		arr[i] = temp;
+	}
+
 }

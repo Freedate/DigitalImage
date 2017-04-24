@@ -14,7 +14,7 @@ protected: // serialization에서만 만들어집니다.
 // 특성입니다.
 public:
 	CDigitalImageDoc* GetDocument() const;
-
+	
 // 작업입니다.
 public:
 
@@ -47,9 +47,12 @@ public:
 	afx_msg void OnHistogramEqualization();
 	afx_msg void OnHistogramEqualizationRgb();
 	afx_msg void OnHistogramSpecification();
-	afx_msg void OnBlurring3x3();
 	void OnHsiToRgb();
-	afx_msg void OnBlurring5x5();
+	afx_msg void OnAverage3x3();
+	afx_msg void OnAverage5x5();
+	afx_msg void OnMedian3x3();
+	afx_msg void OnMedian5x5();
+	void SelectionSort(int *arr, int n);
 };
 
 #ifndef _DEBUG  // DigitalImageView.cpp의 디버그 버전
