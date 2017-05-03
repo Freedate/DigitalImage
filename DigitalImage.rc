@@ -172,6 +172,23 @@ BEGIN
                 MENUITEM "5x5",                         ID_MEDIAN_5X5
             END
         END
+        POPUP "High-Boost"
+        BEGIN
+            POPUP "Mask 1"
+            BEGIN
+                MENUITEM "A=1",                         ID_MASK1_A
+                MENUITEM "A=1.2",                       ID_MASK1_A32809
+                MENUITEM "A=1.5",                       ID_MASK1_A32810
+                MENUITEM "A=1.8",                       ID_MASK1_A32811
+            END
+            POPUP "Mask 2"
+            BEGIN
+                MENUITEM "A=1",                         ID_MASK2_A
+                MENUITEM "A=1.2",                       ID_MASK2_A32813
+                MENUITEM "A=1.5",                       ID_MASK2_A32814
+                MENUITEM "A=1.8",                       ID_MASK2_A32815
+            END
+        END
     END
 END
 

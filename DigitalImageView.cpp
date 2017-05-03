@@ -38,6 +38,8 @@ BEGIN_MESSAGE_MAP(CDigitalImageView, CView)
 	ON_COMMAND(ID_AVERAGE_5X5, &CDigitalImageView::OnAverage5x5)
 	ON_COMMAND(ID_MEDIAN_3X3, &CDigitalImageView::OnMedian3x3)
 	ON_COMMAND(ID_MEDIAN_5X5, &CDigitalImageView::OnMedian5x5)
+	ON_COMMAND(ID_GAUSSIAN_3X3, &CDigitalImageView::OnGaussian3x3)
+	ON_COMMAND(ID_GAUSSIAN_5X5, &CDigitalImageView::OnGaussian5x5)
 END_MESSAGE_MAP()
 
 // CDigitalImageView construction/destruction
@@ -73,6 +75,7 @@ int sum_histB[256];
 int inv_hist[256];
 
 int viewType;
+CString outText;
 
 CDigitalImageView::CDigitalImageView()
 {
@@ -87,6 +90,7 @@ CDigitalImageView::CDigitalImageView()
 
 	rgbBufferFilter = nullptr;
 	//histogram = nullptr;
+	outText = "지정되지 않음";
 }
 
 CDigitalImageView::~CDigitalImageView()
@@ -182,18 +186,18 @@ void CDigitalImageView::OnDraw(CDC* pDC)
 					pDC->SetPixel(p, RGB(hueBuffer[i][j], hueBuffer[i][j], hueBuffer[i][j]));
 
 					p.x = j + imgWidth + 10;
-					p.y = i + imgWidth + 30;
+					p.y = i + imgHeight + 30;
 					pDC->SetPixel(p, RGB(satuBuffer[i][j], satuBuffer[i][j], satuBuffer[i][j]));
 
 					p.x = j;
-					p.y = i + imgWidth + 30;
+					p.y = i + imgHeight + 30;
 					pDC->SetPixel(p, RGB(intenBuffer[i][j], intenBuffer[i][j], intenBuffer[i][j]));
 					break;
 
 				case 3:
 
 					p.x = j + imgWidth + 10 + imgWidth + 10;
-					p.y = i + imgWidth + 30;
+					p.y = i + imgHeight + 30;
 					pDC->SetPixel(p, RGB(intenBuffer[i][j], intenBuffer[i][j], intenBuffer[i][j]));
 					break;
 
@@ -206,7 +210,7 @@ void CDigitalImageView::OnDraw(CDC* pDC)
 
 				case 5:
 					p.x = j + imgWidth + 10 + imgWidth + 10;
-					p.y = i + imgWidth + 30;
+					p.y = i + imgHeight + 30;
 					pDC->SetPixel(p, RGB(rgbFilteringBuffer[i][j].rgbRed, rgbFilteringBuffer[i][j].rgbGreen, rgbFilteringBuffer[i][j].rgbBlue));
 					break;
 					
@@ -246,7 +250,30 @@ void CDigitalImageView::OnDraw(CDC* pDC)
 			pDC->SetTextAlign(TA_CENTER);
 			pDC->TextOut(p.x, p.y, "INTENSITY");
 			break;
-
+		case 3:
+			p.x = imgWidth + imgWidth + 10 + imgWidth/2 + 10;
+			p.y = imgHeight + imgHeight + 30;
+			pDC->SetTextColor(RGB(0, 0, 0));
+			pDC->SetBkColor(RGB(255, 255, 255));
+			pDC->SetTextAlign(TA_CENTER);
+			pDC->TextOut(p.x, p.y, outText);
+			break;
+		case 4:
+			p.x = imgWidth + imgWidth + 10 + imgWidth / 2 + 10;
+			p.y = imgHeight + 5;
+			pDC->SetTextColor(RGB(0, 0, 0));
+			pDC->SetBkColor(RGB(255, 255, 255));
+			pDC->SetTextAlign(TA_CENTER);
+			pDC->TextOut(p.x, p.y, outText);
+			break;
+		case 5:
+			p.x = imgWidth + imgWidth + 10 + imgWidth / 2 + 10;
+			p.y = imgHeight + imgHeight + 30;
+			pDC->SetTextColor(RGB(0, 0, 0));
+			pDC->SetBkColor(RGB(255, 255, 255));
+			pDC->SetTextAlign(TA_CENTER);
+			pDC->TextOut(p.x, p.y, outText);
+			break;
 		}
 	}
 
@@ -511,7 +538,7 @@ void CDigitalImageView::OnHistogramEqualization()
 			intenBuffer[i][j] = float(sum_hist[(int)intenBuffer[i][j]] / sum);
 		}
 	}
-
+	outText = "          Histogram Equalization(Intensity)          ";
 	viewType = 3;
 	Invalidate(false);
 
@@ -569,6 +596,7 @@ void CDigitalImageView::OnHistogramEqualizationRgb()
 			rgbBufferHE[i][j].rgbBlue = sum_histB[(int)rgbBuffer[i][j].rgbBlue] / sumB;
 		}
 	}
+	outText = "          Histogram Equalization(RGB)          ";
 
 	viewType = 4;
 	Invalidate(false);
@@ -603,7 +631,7 @@ void CDigitalImageView::OnHistogramSpecification()
 			intenBuffer[i][j] = float(inv_hist[(int)intenBuffer[i][j]]);
 		}
 	}
-
+	outText = "          Histogram Specification          ";
 	viewType = 3;
 	Invalidate(false);
 
@@ -691,6 +719,7 @@ void CDigitalImageView::OnAverage3x3()
 
 		}
 	}
+	outText = "          Average Filter 3X3          ";
 
 	viewType = 5;
 	Invalidate(false);
@@ -753,6 +782,7 @@ void CDigitalImageView::OnAverage5x5()
 			}
 		}
 	}
+	outText = "          Average Filter 5X5          ";
 	viewType = 5;
 	Invalidate(false);
 
@@ -819,6 +849,7 @@ void CDigitalImageView::OnMedian3x3()
 		}
 	}
 
+	outText = "          Median Filter 3X3          ";
 	viewType = 5;
 	Invalidate(false);
 }
@@ -883,6 +914,7 @@ void CDigitalImageView::OnMedian5x5()
 		}
 	}
 
+	outText = "          Median Filter 5X5          ";
 	viewType = 5;
 	Invalidate(false);
 }
@@ -902,4 +934,19 @@ void CDigitalImageView::SelectionSort(int *arr, int n) {
 		arr[i] = temp;
 	}
 
+}
+
+void CDigitalImageView::OnGaussian3x3()
+{
+	// TODO: 여기에 명령 처리기 코드를 추가합니다.
+
+
+
+
+}
+
+
+void CDigitalImageView::OnGaussian5x5()
+{
+	// TODO: 여기에 명령 처리기 코드를 추가합니다.
 }

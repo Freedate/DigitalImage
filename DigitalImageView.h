@@ -53,6 +53,8 @@ public:
 	afx_msg void OnMedian3x3();
 	afx_msg void OnMedian5x5();
 	void SelectionSort(int *arr, int n);
+	afx_msg void OnGaussian3x3();
+	afx_msg void OnGaussian5x5();
 };
 
 #ifndef _DEBUG  // DigitalImageView.cpp의 디버그 버전
