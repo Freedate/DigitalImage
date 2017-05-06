@@ -189,6 +189,9 @@ BEGIN
                 MENUITEM "A=1.8",                       ID_MASK2_A32815
             END
         END
+        MENUITEM SEPARATOR
+        MENUITEM "Prewitt",                     ID_Prewitt
+        MENUITEM "Sobel",                       ID_SOBEL
     END
 END
 

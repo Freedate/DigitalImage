@@ -55,6 +55,16 @@ public:
 	void SelectionSort(int *arr, int n);
 	afx_msg void OnGaussian3x3();
 	afx_msg void OnGaussian5x5();
+	afx_msg void OnMask1A();
+	afx_msg void OnMask1A32809();
+	afx_msg void OnMask1A32810();
+	afx_msg void OnMask1A32811();
+	afx_msg void OnMask2A();
+	afx_msg void OnMask2A32813();
+	afx_msg void OnMask2A32814();
+	afx_msg void OnMask2A32815();
+	afx_msg void OnPrewitt();
+	afx_msg void OnSobel();
 };
 
 #ifndef _DEBUG  // DigitalImageView.cpp의 디버그 버전

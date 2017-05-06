@@ -11,7 +11,7 @@
 
 #include "DigitalImageDoc.h"
 #include "DigitalImageView.h"
-
+#include <math.h>
 #include "Jpegfile.h"
 
 #ifdef _DEBUG
@@ -40,6 +40,17 @@ BEGIN_MESSAGE_MAP(CDigitalImageView, CView)
 	ON_COMMAND(ID_MEDIAN_5X5, &CDigitalImageView::OnMedian5x5)
 	ON_COMMAND(ID_GAUSSIAN_3X3, &CDigitalImageView::OnGaussian3x3)
 	ON_COMMAND(ID_GAUSSIAN_5X5, &CDigitalImageView::OnGaussian5x5)
+	ON_COMMAND(ID_MASK1_A, &CDigitalImageView::OnMask1A)
+	ON_COMMAND(ID_MASK1_A32809, &CDigitalImageView::OnMask1A32809)
+	ON_COMMAND(ID_MASK1_A32810, &CDigitalImageView::OnMask1A32810)
+	ON_COMMAND(ID_MASK1_A32811, &CDigitalImageView::OnMask1A32811)
+	ON_COMMAND(ID_MASK2_A, &CDigitalImageView::OnMask2A)
+	ON_COMMAND(ID_MASK2_A32813, &CDigitalImageView::OnMask2A32813)
+	ON_COMMAND(ID_MASK2_A32814, &CDigitalImageView::OnMask2A32814)
+	ON_COMMAND(ID_MASK2_A32815, &CDigitalImageView::OnMask2A32815)
+
+	ON_COMMAND(ID_Prewitt, &CDigitalImageView::OnPrewitt)
+	ON_COMMAND(ID_SOBEL, &CDigitalImageView::OnSobel)
 END_MESSAGE_MAP()
 
 // CDigitalImageView construction/destruction
@@ -58,8 +69,13 @@ float** hueBuffer;
 float** satuBuffer;
 float** intenBuffer;
 
-float** bluringBuffer;
+RGBQUAD** tmpBufferGF3;
+//float** bluringBuffer;
 RGBQUAD** rgbFilteringBuffer;
+float** intenFilteringBuffer;
+float** intenFilteringBuffer2;
+float** intenFilteringBuffer3;
+float** intenFilteringBuffer4;
 
 //float* histogram;
 int histogram[256];
@@ -76,6 +92,7 @@ int inv_hist[256];
 
 int viewType;
 CString outText;
+CString outText2;
 
 CDigitalImageView::CDigitalImageView()
 {
@@ -85,12 +102,17 @@ CDigitalImageView::CDigitalImageView()
 	intenBuffer = nullptr;
 	rgbBufferHE = nullptr;
 
-	bluringBuffer = nullptr;
+	//bluringBuffer = nullptr;
 	rgbFilteringBuffer = nullptr;
 
 	rgbBufferFilter = nullptr;
+	intenFilteringBuffer = nullptr;
+	intenFilteringBuffer2 = nullptr;
+	intenFilteringBuffer3 = nullptr;
+	intenFilteringBuffer4 = nullptr;
 	//histogram = nullptr;
 	outText = "지정되지 않음";
+	outText2 = "지정되지 않음";
 }
 
 CDigitalImageView::~CDigitalImageView()
@@ -128,11 +150,29 @@ CDigitalImageView::~CDigitalImageView()
 		}
 		delete[] rgbBufferHE;
 	}
-	if (bluringBuffer != nullptr) {
+	if (intenFilteringBuffer != nullptr) {
 		for (int i = 0; i < imgHeight; i++) {
-			delete[] bluringBuffer[i];
+			delete[] intenFilteringBuffer[i];
 		}
-		delete[] bluringBuffer;
+		delete[] intenFilteringBuffer;
+	}
+	if (intenFilteringBuffer2 != nullptr) {
+		for (int i = 0; i < imgHeight; i++) {
+			delete[] intenFilteringBuffer2[i];
+		}
+		delete[] intenFilteringBuffer2;
+	}
+	if (intenFilteringBuffer3 != nullptr) {
+		for (int i = 0; i < imgHeight; i++) {
+			delete[] intenFilteringBuffer3[i];
+		}
+		delete[] intenFilteringBuffer3;
+	}
+	if (intenFilteringBuffer4 != nullptr) {
+		for (int i = 0; i < imgHeight; i++) {
+			delete[] intenFilteringBuffer4[i];
+		}
+		delete[] intenFilteringBuffer4;
 	}
 
 	if (rgbFilteringBuffer != nullptr) {
@@ -149,6 +189,16 @@ CDigitalImageView::~CDigitalImageView()
 		}
 		delete[] rgbBufferFilter;
 	}
+
+	if (tmpBufferGF3 != nullptr) {
+		for (int i = 0; i < imgHeight; i++) {
+			delete[] tmpBufferGF3[i];
+		}
+		delete[] tmpBufferGF3;
+	}
+
+
+
 
 }
 
@@ -198,7 +248,7 @@ void CDigitalImageView::OnDraw(CDC* pDC)
 
 					p.x = j + imgWidth + 10 + imgWidth + 10;
 					p.y = i + imgHeight + 30;
-					pDC->SetPixel(p, RGB(intenBuffer[i][j], intenBuffer[i][j], intenBuffer[i][j]));
+					pDC->SetPixel(p, RGB(intenFilteringBuffer[i][j], intenFilteringBuffer[i][j], intenFilteringBuffer[i][j]));
 					break;
 
 				case 4:
@@ -213,7 +263,26 @@ void CDigitalImageView::OnDraw(CDC* pDC)
 					p.y = i + imgHeight + 30;
 					pDC->SetPixel(p, RGB(rgbFilteringBuffer[i][j].rgbRed, rgbFilteringBuffer[i][j].rgbGreen, rgbFilteringBuffer[i][j].rgbBlue));
 					break;
-					
+				case 6:
+					p.x = j + imgWidth + 10 + imgWidth + 10;
+					p.y = i + imgHeight + 30;
+					pDC->SetPixel(p, RGB(intenFilteringBuffer[i][j], intenFilteringBuffer[i][j], intenFilteringBuffer[i][j]));
+
+					p.x = j + imgWidth + 10 + imgWidth + 10;
+					p.y = i;
+					pDC->SetPixel(p, RGB(intenFilteringBuffer2[i][j], intenFilteringBuffer2[i][j], intenFilteringBuffer2[i][j]));
+
+					break;
+				case 7:
+					p.x = j + imgWidth + 10 + imgWidth + 10;
+					p.y = i + imgHeight + 30;
+					pDC->SetPixel(p, RGB(intenFilteringBuffer3[i][j], intenFilteringBuffer3[i][j], intenFilteringBuffer3[i][j]));
+
+					p.x = j + imgWidth + 10 + imgWidth + 10;
+					p.y = i;
+					pDC->SetPixel(p, RGB(intenFilteringBuffer4[i][j], intenFilteringBuffer4[i][j], intenFilteringBuffer4[i][j]));
+
+					break;
 
 				}
 
@@ -274,6 +343,37 @@ void CDigitalImageView::OnDraw(CDC* pDC)
 			pDC->SetTextAlign(TA_CENTER);
 			pDC->TextOut(p.x, p.y, outText);
 			break;
+		case 6:
+			p.x = imgWidth + imgWidth + 10 + imgWidth / 2 + 10;
+			p.y = imgHeight + imgHeight + 30;
+			pDC->SetTextColor(RGB(0, 0, 0));
+			pDC->SetBkColor(RGB(255, 255, 255));
+			pDC->SetTextAlign(TA_CENTER);
+			pDC->TextOut(p.x, p.y, outText);
+
+			p.x = imgWidth + imgWidth + 10 + imgWidth / 2 + 10;
+			p.y = imgHeight + 5;
+			pDC->SetTextColor(RGB(0, 0, 0));
+			pDC->SetBkColor(RGB(255, 255, 255));
+			pDC->SetTextAlign(TA_CENTER);
+			pDC->TextOut(p.x, p.y, outText2);
+			break;
+		case 7:
+			p.x = imgWidth + imgWidth + 10 + imgWidth / 2 + 10;
+			p.y = imgHeight + imgHeight + 30;
+			pDC->SetTextColor(RGB(0, 0, 0));
+			pDC->SetBkColor(RGB(255, 255, 255));
+			pDC->SetTextAlign(TA_CENTER);
+			pDC->TextOut(p.x, p.y, outText);
+
+			p.x = imgWidth + imgWidth + 10 + imgWidth / 2 + 10;
+			p.y = imgHeight + 5;
+			pDC->SetTextColor(RGB(0, 0, 0));
+			pDC->SetBkColor(RGB(255, 255, 255));
+			pDC->SetTextAlign(TA_CENTER);
+			pDC->TextOut(p.x, p.y, outText2);
+			break;
+
 		}
 	}
 
@@ -386,10 +486,12 @@ void CDigitalImageView::OnRgbToHsi()
 	hueBuffer = new float*[imgHeight];
 	satuBuffer = new float*[imgHeight];
 	intenBuffer = new float*[imgHeight];
+	intenFilteringBuffer = new float*[imgHeight];
 	for (int i = 0; i < imgHeight; i++) {
 		hueBuffer[i] = new float[imgWidth];
 		satuBuffer[i] = new float[imgWidth];
 		intenBuffer[i] = new float[imgWidth];
+		intenFilteringBuffer[i] = new float[imgWidth];
 	}
 	
 	for (int i = 0; i < imgHeight; i++) {
@@ -518,6 +620,7 @@ void CDigitalImageView::OnHistogramEqualization()
 		histogram[i] = 0;
 	}
 
+
 	for (int i = 0; i < imgHeight; i++) {
 		for (int j = 0; j < imgWidth; j++) {
 			histogram[(int)intenBuffer[i][j]]++;
@@ -535,7 +638,7 @@ void CDigitalImageView::OnHistogramEqualization()
 
 	for (int i = 0; i < imgHeight; i++) {
 		for (int j = 0; j < imgWidth; j++) {
-			intenBuffer[i][j] = float(sum_hist[(int)intenBuffer[i][j]] / sum);
+			intenFilteringBuffer[i][j] = float(sum_hist[(int)intenBuffer[i][j]] / sum);
 		}
 	}
 	outText = "          Histogram Equalization(Intensity)          ";
@@ -641,7 +744,7 @@ void CDigitalImageView::OnHistogramSpecification()
 
 
 void CDigitalImageView::OnHsiToRgb() {
-
+	/*
 	//rgbBuffer이 NULL이 아닌 경우 메모리 해제
 	if (rgbBufferFilter != NULL) {
 		for (int i = 0; i < imgHeight; i++) {
@@ -665,7 +768,7 @@ void CDigitalImageView::OnHsiToRgb() {
 		}
 	}
 
-
+	*/
 }
 
 
@@ -750,11 +853,25 @@ void CDigitalImageView::OnAverage5x5()
 		rgbFilteringBuffer[i] = new RGBQUAD[imgWidth];
 	}
 
+	/*if (intenFilteringBuffer != NULL) {
+		for (int i = 0; i < imgHeight; i++) {
+			delete[] intenFilteringBuffer[i];
+		}
+		delete[] intenFilteringBuffer;
+	}
+
+	intenFilteringBuffer = new float*[imgHeight];
+	for (int i = 0; i < imgHeight; i++) {
+		intenFilteringBuffer[i] = new float[imgWidth];
+	}*/
+
+
 	int a, b;
 
 
 	for (int i = 0; i < imgHeight; i++) {
 		for (int j = 0; j < imgWidth; j++) {
+			//intenFilteringBuffer[i][j] = 0;
 			rgbFilteringBuffer[i][j].rgbRed = 0;
 			rgbFilteringBuffer[i][j].rgbBlue = 0;
 			rgbFilteringBuffer[i][j].rgbGreen = 0;
@@ -775,6 +892,7 @@ void CDigitalImageView::OnAverage5x5()
 			
 			for (int x = 0; x < 5; x++) {
 				for (int y = 0; y < 5; y++) {
+					//intenFilteringBuffer[i][j] += intenBuffer[a - 2 + x][b - 2 + y] * mask5[x][y];
 					rgbFilteringBuffer[i][j].rgbRed += rgbBuffer[a - 2 + x][b - 2 + y].rgbRed * mask5[x][y];
 					rgbFilteringBuffer[i][j].rgbBlue += rgbBuffer[a - 2 + x][b - 2 + y].rgbBlue * mask5[x][y];
 					rgbFilteringBuffer[i][j].rgbGreen += rgbBuffer[a - 2 + x][b - 2 + y].rgbGreen * mask5[x][y];
@@ -938,15 +1056,764 @@ void CDigitalImageView::SelectionSort(int *arr, int n) {
 
 void CDigitalImageView::OnGaussian3x3()
 {
-	// TODO: 여기에 명령 처리기 코드를 추가합니다.
+	OnRgbToHsi();
+	float mask3[3][3];
+	float sigma = 0.8f;
+	for (int i = -1; i < 2; i++) {
+		for (int j = -1; j < 2; j++) {
+			mask3[i+1][j+1] = ((1.0f / (2.0f * 3.14f*sigma*sigma)) * exp(-1.0f*((float)i*(float)i + (float)j*(float)j )/(2.0f*sigma*sigma)));
+		}
+	}
 
 
+	if (rgbFilteringBuffer != NULL) {
+		for (int i = 0; i < imgHeight; i++) {
+			delete[] rgbFilteringBuffer[i];
+		}
+		delete[] rgbFilteringBuffer;
+	}
 
+	rgbFilteringBuffer = new RGBQUAD*[imgHeight];
+	for (int i = 0; i < imgHeight; i++) {
+		rgbFilteringBuffer[i] = new RGBQUAD[imgWidth];
+	}
+
+	int a, b;
+
+	for (int i = 0; i < imgHeight; i++) {
+		for (int j = 0; j < imgWidth; j++) {
+			rgbFilteringBuffer[i][j].rgbRed = 0.0f;
+			rgbFilteringBuffer[i][j].rgbGreen = 0.0f;
+			rgbFilteringBuffer[i][j].rgbBlue = 0.0f;
+			a = i;
+			b = j;
+			if (i == 0) {
+				a = 1;
+			}
+			if (j == 0) {
+				b = 1;
+			}
+			if (i == imgHeight - 1) {
+				a = imgHeight - 2;
+			}
+			if (j == imgWidth - 1) {
+				b = imgWidth - 2;
+			}
+
+			for (int x = 0; x < 3; x++) {
+				for (int y = 0; y < 3; y++) {
+					rgbFilteringBuffer[i][j].rgbRed += rgbBuffer[a - 1 + x][b - 1 + y].rgbRed * mask3[x][y];
+					rgbFilteringBuffer[i][j].rgbBlue += rgbBuffer[a - 1 + x][b - 1 + y].rgbBlue * mask3[x][y];
+					rgbFilteringBuffer[i][j].rgbGreen += rgbBuffer[a - 1 + x][b - 1 + y].rgbGreen * mask3[x][y];
+				}
+			}
+		}
+	}
+
+	outText = "          Gaussian Filter 3X3          ";
+	viewType = 5;
+	Invalidate(false);
 
 }
 
 
 void CDigitalImageView::OnGaussian5x5()
 {
-	// TODO: 여기에 명령 처리기 코드를 추가합니다.
+	OnRgbToHsi();
+	float mask5[5][5];
+	float sigma = 0.8f;
+	for (int i = -2; i < 3; i++) {
+		for (int j = -2; j < 3; j++) {
+			mask5[i + 2][j + 2] = ((1.0f / (2.0f * 3.14f*sigma*sigma)) * exp(-1.0f*((float)i*(float)i + (float)j*(float)j) / (2.0f*sigma*sigma)));
+		}
+	}
+
+	if (rgbFilteringBuffer != NULL) {
+		for (int i = 0; i < imgHeight; i++) {
+			delete[] rgbFilteringBuffer[i];
+		}
+		delete[] rgbFilteringBuffer;
+	}
+
+	rgbFilteringBuffer = new RGBQUAD*[imgHeight];
+	for (int i = 0; i < imgHeight; i++) {
+		rgbFilteringBuffer[i] = new RGBQUAD[imgWidth];
+	}
+
+
+	int a, b;
+	for (int i = 0; i < imgHeight; i++) {
+		for (int j = 0; j < imgWidth; j++) {
+			//intenFilteringBuffer[i][j] = 0;
+			rgbFilteringBuffer[i][j].rgbRed = 0;
+			rgbFilteringBuffer[i][j].rgbBlue = 0;
+			rgbFilteringBuffer[i][j].rgbGreen = 0;
+			a = i;
+			b = j;
+			if (i == 0 || i == 1) {
+				a = 2;
+			}
+			if (j == 0 || i == 1) {
+				b = 2;
+			}
+			if (i == imgHeight - 1 || i == imgHeight - 2) {
+				a = imgHeight - 3;
+			}
+			if (j == imgWidth - 1 || j == imgHeight - 2) {
+				b = imgWidth - 3;
+			}
+
+			for (int x = 0; x < 5; x++) {
+				for (int y = 0; y < 5; y++) {
+					//intenFilteringBuffer[i][j] += intenBuffer[a - 2 + x][b - 2 + y] * mask5[x][y];
+					rgbFilteringBuffer[i][j].rgbRed += rgbBuffer[a - 2 + x][b - 2 + y].rgbRed * mask5[x][y];
+					rgbFilteringBuffer[i][j].rgbBlue += rgbBuffer[a - 2 + x][b - 2 + y].rgbBlue * mask5[x][y];
+					rgbFilteringBuffer[i][j].rgbGreen += rgbBuffer[a - 2 + x][b - 2 + y].rgbGreen * mask5[x][y];
+				}
+			}
+
+		}
+		
+	}
+
+	outText = "          Gaussian Filter 5X5          ";
+	viewType = 5;
+	Invalidate(false);
+}
+
+
+void CDigitalImageView::OnMask1A()// Mask : 1 // A : 1
+{
+	OnRgbToHsi();
+	float mask3[3][3] = { { 0.0f,-1.0f / 5.0f,0.0f },{ -1.0f / 5.0f,4.0f / 5.0f, -1.0f / 5.0f },{ 0.0f,-1.0f / 5.0f,0.0f } };
+
+	if (intenFilteringBuffer != NULL) {
+		for (int i = 0; i < imgHeight; i++) {
+			delete[] intenFilteringBuffer[i];
+		}
+		delete[] intenFilteringBuffer;
+	}
+
+	intenFilteringBuffer = new float*[imgHeight];
+	for (int i = 0; i < imgHeight; i++) {
+		intenFilteringBuffer[i] = new float[imgWidth];
+	}
+
+	int a, b;
+
+	for (int i = 0; i < imgHeight; i++) {
+		for (int j = 0; j < imgWidth; j++) {
+			intenFilteringBuffer[i][j] = 0;
+
+			a = i;
+			b = j;
+			if (i == 0) {
+				a = 1;
+			}
+			if (j == 0) {
+				b = 1;
+			}
+			if (i == imgHeight - 1) {
+				a = imgHeight - 2;
+			}
+			if (j == imgWidth - 1) {
+				b = imgWidth - 2;
+			}
+
+			for (int x = 0; x < 3; x++) {
+				for (int y = 0; y < 3; y++) {
+					intenFilteringBuffer[i][j] += intenBuffer[a - 1 + x][b - 1 + y] * mask3[x][y];
+					
+				}
+			}
+			intenFilteringBuffer[i][j] += intenBuffer[a][b];
+
+		}
+	}
+	outText = "          High-Boost Fileter Mask1, A1          ";
+
+	viewType = 3;
+	Invalidate(false);
+}
+
+
+void CDigitalImageView::OnMask1A32809()// Mask : 1 // A : 1.2
+{
+	OnRgbToHsi();
+	float mask3[3][3] = { { 0.0f,-1.0f / 5.0f,0.0f },{ -1.0f / 5.0f,4.0f / 5.0f, -1.0f / 5.0f },{ 0.0f,-1.0f / 5.0f,0.0f } };
+
+	if (intenFilteringBuffer != NULL) {
+		for (int i = 0; i < imgHeight; i++) {
+			delete[] intenFilteringBuffer[i];
+		}
+		delete[] intenFilteringBuffer;
+	}
+
+	intenFilteringBuffer = new float*[imgHeight];
+	for (int i = 0; i < imgHeight; i++) {
+		intenFilteringBuffer[i] = new float[imgWidth];
+	}
+
+	int a, b;
+
+	for (int i = 0; i < imgHeight; i++) {
+		for (int j = 0; j < imgWidth; j++) {
+			intenFilteringBuffer[i][j] = 0;
+
+			a = i;
+			b = j;
+			if (i == 0) {
+				a = 1;
+			}
+			if (j == 0) {
+				b = 1;
+			}
+			if (i == imgHeight - 1) {
+				a = imgHeight - 2;
+			}
+			if (j == imgWidth - 1) {
+				b = imgWidth - 2;
+			}
+
+			for (int x = 0; x < 3; x++) {
+				for (int y = 0; y < 3; y++) {
+					intenFilteringBuffer[i][j] += intenBuffer[a - 1 + x][b - 1 + y] * mask3[x][y];
+
+				}
+			}
+			intenFilteringBuffer[i][j] += intenBuffer[a][b]*1.2f;
+
+		}
+	}
+	outText = "          High-Boost Fileter Mask1, A1.2          ";
+
+	viewType = 3;
+	Invalidate(false);
+}
+
+
+void CDigitalImageView::OnMask1A32810()// Mask : 1 // A : 1.5
+{
+	OnRgbToHsi();
+	float mask3[3][3] = { { 0.0f,-1.0f / 5.0f,0.0f },{ -1.0f / 5.0f,4.0f / 5.0f, -1.0f / 5.0f },{ 0.0f,-1.0f / 5.0f,0.0f } };
+
+	if (intenFilteringBuffer != NULL) {
+		for (int i = 0; i < imgHeight; i++) {
+			delete[] intenFilteringBuffer[i];
+		}
+		delete[] intenFilteringBuffer;
+	}
+
+	intenFilteringBuffer = new float*[imgHeight];
+	for (int i = 0; i < imgHeight; i++) {
+		intenFilteringBuffer[i] = new float[imgWidth];
+	}
+
+	int a, b;
+
+	for (int i = 0; i < imgHeight; i++) {
+		for (int j = 0; j < imgWidth; j++) {
+			intenFilteringBuffer[i][j] = 0;
+
+			a = i;
+			b = j;
+			if (i == 0) {
+				a = 1;
+			}
+			if (j == 0) {
+				b = 1;
+			}
+			if (i == imgHeight - 1) {
+				a = imgHeight - 2;
+			}
+			if (j == imgWidth - 1) {
+				b = imgWidth - 2;
+			}
+
+			for (int x = 0; x < 3; x++) {
+				for (int y = 0; y < 3; y++) {
+					intenFilteringBuffer[i][j] += intenBuffer[a - 1 + x][b - 1 + y] * mask3[x][y];
+
+				}
+			}
+			intenFilteringBuffer[i][j] += intenBuffer[a][b] * 1.5f;
+
+		}
+	}
+	outText = "          High-Boost Fileter Mask1, A1.5          ";
+
+	viewType = 3;
+	Invalidate(false);
+}
+
+
+void CDigitalImageView::OnMask1A32811()// Mask : 1 // A : 1.8
+{
+	OnRgbToHsi();
+	float mask3[3][3] = { { 0.0f,-1.0f / 5.0f,0.0f },{ -1.0f / 5.0f,4.0f / 5.0f, -1.0f / 5.0f },{ 0.0f,-1.0f / 5.0f,0.0f } };
+
+	if (intenFilteringBuffer != NULL) {
+		for (int i = 0; i < imgHeight; i++) {
+			delete[] intenFilteringBuffer[i];
+		}
+		delete[] intenFilteringBuffer;
+	}
+
+	intenFilteringBuffer = new float*[imgHeight];
+	for (int i = 0; i < imgHeight; i++) {
+		intenFilteringBuffer[i] = new float[imgWidth];
+	}
+
+	int a, b;
+
+	for (int i = 0; i < imgHeight; i++) {
+		for (int j = 0; j < imgWidth; j++) {
+			intenFilteringBuffer[i][j] = 0;
+
+			a = i;
+			b = j;
+			if (i == 0) {
+				a = 1;
+			}
+			if (j == 0) {
+				b = 1;
+			}
+			if (i == imgHeight - 1) {
+				a = imgHeight - 2;
+			}
+			if (j == imgWidth - 1) {
+				b = imgWidth - 2;
+			}
+
+			for (int x = 0; x < 3; x++) {
+				for (int y = 0; y < 3; y++) {
+					intenFilteringBuffer[i][j] += intenBuffer[a - 1 + x][b - 1 + y] * mask3[x][y];
+
+				}
+			}
+			intenFilteringBuffer[i][j] += intenBuffer[a][b] * 1.8f;
+
+		}
+	}
+	outText = "          High-Boost Fileter Mask1, A1.8          ";
+
+	viewType = 3;
+	Invalidate(false);
+}
+
+
+void CDigitalImageView::OnMask2A()
+{
+	OnRgbToHsi();
+	float mask3[3][3] = { { -1.0f / 9.0f,-1.0f / 9.0f,-1.0f / 9.0f },{ -1.0f / 9.0f,8.0f / 9.0f,-1.0f / 9.0f },{ -1.0f / 9.0f,-1.0f / 9.0f,-1.0f / 9.0f } };
+
+	if (intenFilteringBuffer != NULL) {
+		for (int i = 0; i < imgHeight; i++) {
+			delete[] intenFilteringBuffer[i];
+		}
+		delete[] intenFilteringBuffer;
+	}
+
+	intenFilteringBuffer = new float*[imgHeight];
+	for (int i = 0; i < imgHeight; i++) {
+		intenFilteringBuffer[i] = new float[imgWidth];
+	}
+
+	int a, b;
+
+	for (int i = 0; i < imgHeight; i++) {
+		for (int j = 0; j < imgWidth; j++) {
+			intenFilteringBuffer[i][j] = 0;
+
+			a = i;
+			b = j;
+			if (i == 0) {
+				a = 1;
+			}
+			if (j == 0) {
+				b = 1;
+			}
+			if (i == imgHeight - 1) {
+				a = imgHeight - 2;
+			}
+			if (j == imgWidth - 1) {
+				b = imgWidth - 2;
+			}
+
+			for (int x = 0; x < 3; x++) {
+				for (int y = 0; y < 3; y++) {
+					intenFilteringBuffer[i][j] += intenBuffer[a - 1 + x][b - 1 + y] * mask3[x][y];
+				}
+			}
+			intenFilteringBuffer[i][j] += intenBuffer[a][b];
+		}
+	}
+	outText = "          High-Boost Fileter Mask2, A1          ";
+
+	viewType = 3;
+	Invalidate(false);
+}
+
+
+void CDigitalImageView::OnMask2A32813()
+{
+	OnRgbToHsi();
+	float mask3[3][3] = { { -1.0f / 9.0f,-1.0f / 9.0f,-1.0f / 9.0f },{ -1.0f / 9.0f,8.0f / 9.0f,-1.0f / 9.0f },{ -1.0f / 9.0f,-1.0f / 9.0f,-1.0f / 9.0f } };
+
+	if (intenFilteringBuffer != NULL) {
+		for (int i = 0; i < imgHeight; i++) {
+			delete[] intenFilteringBuffer[i];
+		}
+		delete[] intenFilteringBuffer;
+	}
+
+	intenFilteringBuffer = new float*[imgHeight];
+	for (int i = 0; i < imgHeight; i++) {
+		intenFilteringBuffer[i] = new float[imgWidth];
+	}
+
+	int a, b;
+
+	for (int i = 0; i < imgHeight; i++) {
+		for (int j = 0; j < imgWidth; j++) {
+			intenFilteringBuffer[i][j] = 0;
+
+			a = i;
+			b = j;
+			if (i == 0) {
+				a = 1;
+			}
+			if (j == 0) {
+				b = 1;
+			}
+			if (i == imgHeight - 1) {
+				a = imgHeight - 2;
+			}
+			if (j == imgWidth - 1) {
+				b = imgWidth - 2;
+			}
+
+			for (int x = 0; x < 3; x++) {
+				for (int y = 0; y < 3; y++) {
+					intenFilteringBuffer[i][j] += intenBuffer[a - 1 + x][b - 1 + y] * mask3[x][y];
+				}
+			}
+			intenFilteringBuffer[i][j] += intenBuffer[a][b] * 1.2f;
+		}
+	}	outText = "          High-Boost Fileter Mask2, A1.2          ";
+
+	viewType = 3;
+	Invalidate(false);
+}
+
+
+void CDigitalImageView::OnMask2A32814()
+{
+	OnRgbToHsi();
+	float mask3[3][3] = { { -1.0f / 9.0f,-1.0f / 9.0f,-1.0f / 9.0f },{ -1.0f / 9.0f,8.0f / 9.0f,-1.0f / 9.0f },{ -1.0f / 9.0f,-1.0f / 9.0f,-1.0f / 9.0f } };
+
+	if (intenFilteringBuffer != NULL) {
+		for (int i = 0; i < imgHeight; i++) {
+			delete[] intenFilteringBuffer[i];
+		}
+		delete[] intenFilteringBuffer;
+	}
+
+	intenFilteringBuffer = new float*[imgHeight];
+	for (int i = 0; i < imgHeight; i++) {
+		intenFilteringBuffer[i] = new float[imgWidth];
+	}
+
+	int a, b;
+
+	for (int i = 0; i < imgHeight; i++) {
+		for (int j = 0; j < imgWidth; j++) {
+			intenFilteringBuffer[i][j] = 0;
+
+			a = i;
+			b = j;
+			if (i == 0) {
+				a = 1;
+			}
+			if (j == 0) {
+				b = 1;
+			}
+			if (i == imgHeight - 1) {
+				a = imgHeight - 2;
+			}
+			if (j == imgWidth - 1) {
+				b = imgWidth - 2;
+			}
+
+			for (int x = 0; x < 3; x++) {
+				for (int y = 0; y < 3; y++) {
+					intenFilteringBuffer[i][j] += intenBuffer[a - 1 + x][b - 1 + y] * mask3[x][y];
+				}
+			}
+			intenFilteringBuffer[i][j] += intenBuffer[a][b] * 1.5f;
+		}
+	}
+	outText = "          High-Boost Fileter Mask2, A1.5          ";
+
+	viewType = 3;
+	Invalidate(false);
+}
+
+
+void CDigitalImageView::OnMask2A32815()
+{
+	OnRgbToHsi();
+	float mask3[3][3] = { { -1.0f / 9.0f,-1.0f / 9.0f,-1.0f / 9.0f },{ -1.0f / 9.0f,8.0f / 9.0f,-1.0f / 9.0f },{ -1.0f / 9.0f,-1.0f / 9.0f,-1.0f / 9.0f } };
+
+	if (intenFilteringBuffer != NULL) {
+		for (int i = 0; i < imgHeight; i++) {
+			delete[] intenFilteringBuffer[i];
+		}
+		delete[] intenFilteringBuffer;
+	}
+
+	intenFilteringBuffer = new float*[imgHeight];
+	for (int i = 0; i < imgHeight; i++) {
+		intenFilteringBuffer[i] = new float[imgWidth];
+	}
+
+	int a, b;
+
+	for (int i = 0; i < imgHeight; i++) {
+		for (int j = 0; j < imgWidth; j++) {
+			intenFilteringBuffer[i][j] = 0;
+
+			a = i;
+			b = j;
+			if (i == 0) {
+				a = 1;
+			}
+			if (j == 0) {
+				b = 1;
+			}
+			if (i == imgHeight - 1) {
+				a = imgHeight - 2;
+			}
+			if (j == imgWidth - 1) {
+				b = imgWidth - 2;
+			}
+
+			for (int x = 0; x < 3; x++) {
+				for (int y = 0; y < 3; y++) {
+					intenFilteringBuffer[i][j] += intenBuffer[a - 1 + x][b - 1 + y] * mask3[x][y];
+				}
+			}
+			intenFilteringBuffer[i][j] += intenBuffer[a][b] * 1.8f;
+		}
+	}
+	outText = "          High-Boost Fileter Mask2, A1.8          ";
+
+	viewType = 3;
+	Invalidate(false);
+}
+
+
+
+void CDigitalImageView::OnPrewitt()
+{
+	OnRgbToHsi();
+	float mask3[3][3] = { {-1.0f,-1.0f,-1.0f },{0.0f,0.0f,0.0f},{1.0f,1.0f,1.0f} };
+
+
+	if (intenFilteringBuffer != NULL) {
+		for (int i = 0; i < imgHeight; i++) {
+			delete[] intenFilteringBuffer[i];
+		}
+		delete[] intenFilteringBuffer;
+	}
+
+	intenFilteringBuffer = new float*[imgHeight];
+	for (int i = 0; i < imgHeight; i++) {
+		intenFilteringBuffer[i] = new float[imgWidth];
+	}
+
+	int a, b;
+
+	for (int i = 0; i < imgHeight; i++) {
+		for (int j = 0; j < imgWidth; j++) {
+			intenFilteringBuffer[i][j] = 0.0f;
+			a = i;
+			b = j;
+			if (i == 0) {
+				a = 1;
+			}
+			if (j == 0) {
+				b = 1;
+			}
+			if (i == imgHeight - 1) {
+				a = imgHeight - 2;
+			}
+			if (j == imgWidth - 1) {
+				b = imgWidth - 2;
+			}
+
+			for (int x = 0; x < 3; x++) {
+				for (int y = 0; y < 3; y++) {
+					intenFilteringBuffer[i][j] += intenBuffer[a - 1 + x][b - 1 + y] * mask3[x][y];
+				}
+			}
+
+		}
+	}
+
+	outText = "          Prewitt Edge Detect-Y          ";
+
+
+
+	float mask[3][3] = { { 1.0f,0.0f,-1.0f },{ 1.0f,0.0f,-1.0f },{ 1.0f,0.0f,-1.0f } };
+
+
+	if (intenFilteringBuffer2 != NULL) {
+		for (int i = 0; i < imgHeight; i++) {
+			delete[] intenFilteringBuffer2[i];
+		}
+		delete[] intenFilteringBuffer2;
+	}
+
+	intenFilteringBuffer2 = new float*[imgHeight];
+	for (int i = 0; i < imgHeight; i++) {
+		intenFilteringBuffer2[i] = new float[imgWidth];
+	}
+
+
+	for (int i = 0; i < imgHeight; i++) {
+		for (int j = 0; j < imgWidth; j++) {
+			intenFilteringBuffer2[i][j] = 0.0f;
+			a = i;
+			b = j;
+			if (i == 0) {
+				a = 1;
+			}
+			if (j == 0) {
+				b = 1;
+			}
+			if (i == imgHeight - 1) {
+				a = imgHeight - 2;
+			}
+			if (j == imgWidth - 1) {
+				b = imgWidth - 2;
+			}
+
+			for (int x = 0; x < 3; x++) {
+				for (int y = 0; y < 3; y++) {
+					intenFilteringBuffer2[i][j] += intenBuffer[a - 1 + x][b - 1 + y] * mask[x][y];
+				}
+			}
+
+		}
+	}
+
+	outText2 = "          Prewitt Edge Detect-X         ";
+	viewType =6 ;
+	Invalidate(false);
+
+
+}
+
+
+void CDigitalImageView::OnSobel()
+{
+	OnRgbToHsi();
+	OnPrewitt();
+	float mask3[3][3] = { { -1.0f,-2.0f,-1.0f },{ 0.0f,0.0f,0.0f },{ 1.0f,2.0f,1.0f } };
+
+
+	if (intenFilteringBuffer != NULL) {
+		for (int i = 0; i < imgHeight; i++) {
+			delete[] intenFilteringBuffer[i];
+		}
+		delete[] intenFilteringBuffer;
+	}
+
+	intenFilteringBuffer = new float*[imgHeight];
+	for (int i = 0; i < imgHeight; i++) {
+		intenFilteringBuffer[i] = new float[imgWidth];
+	}
+
+	int a, b;
+
+	for (int i = 0; i < imgHeight; i++) {
+		for (int j = 0; j < imgWidth; j++) {
+			intenFilteringBuffer[i][j] = 0.0f;
+			a = i;
+			b = j;
+			if (i == 0) {
+				a = 1;
+			}
+			if (j == 0) {
+				b = 1;
+			}
+			if (i == imgHeight - 1) {
+				a = imgHeight - 2;
+			}
+			if (j == imgWidth - 1) {
+				b = imgWidth - 2;
+			}
+
+			for (int x = 0; x < 3; x++) {
+				for (int y = 0; y < 3; y++) {
+					intenFilteringBuffer[i][j] += intenBuffer[a - 1 + x][b - 1 + y] * mask3[x][y];
+				}
+			}
+
+		}
+	}
+
+	outText = "          Sobel Edge Detect-Y          ";
+
+
+
+	float mask[3][3] = { { 1.0f,0.0f,-1.0f },{ 2.0f,0.0f,-2.0f },{ 1.0f,0.0f,-1.0f } };
+
+
+	if (intenFilteringBuffer2 != NULL) {
+		for (int i = 0; i < imgHeight; i++) {
+			delete[] intenFilteringBuffer2[i];
+		}
+		delete[] intenFilteringBuffer2;
+	}
+
+	intenFilteringBuffer2 = new float*[imgHeight];
+	for (int i = 0; i < imgHeight; i++) {
+		intenFilteringBuffer2[i] = new float[imgWidth];
+	}
+
+
+	for (int i = 0; i < imgHeight; i++) {
+		for (int j = 0; j < imgWidth; j++) {
+			intenFilteringBuffer2[i][j] = 0.0f;
+			a = i;
+			b = j;
+			if (i == 0) {
+				a = 1;
+			}
+			if (j == 0) {
+				b = 1;
+			}
+			if (i == imgHeight - 1) {
+				a = imgHeight - 2;
+			}
+			if (j == imgWidth - 1) {
+				b = imgWidth - 2;
+			}
+
+			for (int x = 0; x < 3; x++) {
+				for (int y = 0; y < 3; y++) {
+					intenFilteringBuffer2[i][j] += intenBuffer[a - 1 + x][b - 1 + y] * mask[x][y];
+				}
+			}
+
+		}
+	}
+
+	outText2 = "          Sobel Edge Detect-X         ";
+	viewType = 6;
+	Invalidate(false);
+
+
 }
