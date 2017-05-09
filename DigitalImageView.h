@@ -3,6 +3,8 @@
 //
 
 #pragma once
+#include "opencv2/opencv.hpp"
+using namespace cv;
 
 
 class CDigitalImageView : public CView
@@ -65,6 +67,7 @@ public:
 	afx_msg void OnMask2A32815();
 	afx_msg void OnPrewitt();
 	afx_msg void OnSobel();
+	afx_msg void OnAviLoad();
 };
 
 #ifndef _DEBUG  // DigitalImageView.cpp의 디버그 버전

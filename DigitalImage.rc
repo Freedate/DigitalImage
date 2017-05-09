@@ -146,6 +146,7 @@ BEGIN
     BEGIN
         MENUITEM "BMP",                         ID_BMP_LOAD
         MENUITEM "JPG",                         ID_JPG_LOAD
+        MENUITEM "AVI",                         ID_AVI_LOAD
     END
     POPUP "이미지처리"
     BEGIN

@@ -51,6 +51,7 @@ BEGIN_MESSAGE_MAP(CDigitalImageView, CView)
 
 	ON_COMMAND(ID_Prewitt, &CDigitalImageView::OnPrewitt)
 	ON_COMMAND(ID_SOBEL, &CDigitalImageView::OnSobel)
+	ON_COMMAND(ID_AVI_LOAD, &CDigitalImageView::OnAviLoad)
 END_MESSAGE_MAP()
 
 // CDigitalImageView construction/destruction
@@ -1814,6 +1815,42 @@ void CDigitalImageView::OnSobel()
 	outText2 = "          Sobel Edge Detect-X         ";
 	viewType = 6;
 	Invalidate(false);
+
+
+}
+
+
+void CDigitalImageView::OnAviLoad()
+{
+	CFileDialog dlg(TRUE, ".avi", NULL, NULL, "AVI File (*.avi)|*.avi||");
+	if (IDOK != dlg.DoModal())
+		return;
+
+	CString cfilename = dlg.GetPathName();
+	CT2CA strAtl(cfilename);
+	String filename(strAtl);
+
+
+	//AVI 파일 로드
+	VideoCapture Capture;
+	Capture.open(filename);
+
+	if (!Capture.isOpened())
+		AfxMessageBox("Error Video");
+
+	for (;;) {
+		Mat frame;
+		Capture >> frame;
+		if (frame.data == nullptr)
+			break;
+		imshow("video", frame);
+		if (waitKey(30) >= 0)
+			break;
+	}
+
+	AfxMessageBox("Completed");
+
+
 
 
 }
