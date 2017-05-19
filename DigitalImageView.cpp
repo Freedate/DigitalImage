@@ -95,6 +95,13 @@ int viewType;
 CString outText;
 CString outText2;
 
+
+RGBQUAD** videoRGB;
+
+
+
+
+
 CDigitalImageView::CDigitalImageView()
 {
 	rgbBuffer = nullptr;
@@ -114,6 +121,8 @@ CDigitalImageView::CDigitalImageView()
 	//histogram = nullptr;
 	outText = "지정되지 않음";
 	outText2 = "지정되지 않음";
+
+	videoRGB = nullptr;
 }
 
 CDigitalImageView::~CDigitalImageView()
@@ -197,6 +206,7 @@ CDigitalImageView::~CDigitalImageView()
 		}
 		delete[] tmpBufferGF3;
 	}
+
 
 
 
@@ -1838,12 +1848,106 @@ void CDigitalImageView::OnAviLoad()
 	if (!Capture.isOpened())
 		AfxMessageBox("Error Video");
 
+	Mat prevFrame;
 	for (;;) {
-		Mat frame;
-		Capture >> frame;
-		if (frame.data == nullptr)
+		Mat currFrame;
+		Capture >> currFrame;
+		if(prevFrame.data != nullptr)
+			imshow("prevvideo", prevFrame);
+		if (currFrame.data == nullptr)
 			break;
-		imshow("video", frame);
+		imshow("currvideo", currFrame);
+
+		//여기다가 블록매칭 구현
+		Mat diff;
+		diff = currFrame - prevFrame;
+		
+		
+
+		int x = currFrame.rows;
+		int y = currFrame.cols;
+
+		int block_wCnt = x / 16;
+		int block_hCnt = y / 16;
+
+		
+		
+	
+		float s = 255;
+		int xt;
+		int yt;
+		int xn;
+		int yn;
+		uchar a;
+		uchar b;
+
+		CStdioFile file;
+		file.Open("MotionVector.txt", CFile::modeCreate|CFile::modeWrite);
+		std::string buf;
+		
+		
+
+		if (prevFrame.data != nullptr) {
+			for (int i = 0; i < block_wCnt; i++) {
+				for (int j = 0; j < block_hCnt; j++) {
+					int w = 4;
+					buf.append("(");
+					int picX = block_wCnt*i + 8;
+					int picY = block_hCnt*j + 8;
+					int m = 0;
+					int c = 0;
+					s = 255;
+					for (int n = 0; n < 3; n++) {
+						if (n == 0) {
+							xn = picX;
+							yn = picY;
+						}
+						
+
+						for (int k = -1; k < 2; k++) {
+							for (int l = -1; l < 2; l++) {
+
+								a = currFrame.at<uchar>(picX, picY);
+								b = prevFrame.at<uchar>(xn + (k*w), yn + (l*w));
+								
+								if (s > abs(a - b)) {
+									s = abs(a - b);
+									xt = xn + (k*w);
+									yt = yn + (l*w);
+									c++;
+								}
+
+							}
+						}
+						w = w / 2;
+						xn = xt;
+						yn = yt;
+						
+					}
+					if (c == 0) {
+						xn = picX;
+						yn = picY;
+					}
+
+
+
+					buf.append(std::to_string(picX - xn));
+					buf.append(",");
+					buf.append(std::to_string(picY - yn));
+					buf.append(")");
+				}
+				buf.append("\n");
+			}
+
+		}
+		file.WriteString(buf.c_str());
+		file.Close();
+
+		if (diff.data == nullptr)
+			break;
+		imshow("diffvideo", diff);
+		
+		prevFrame = currFrame;
 		if (waitKey(30) >= 0)
 			break;
 	}
@@ -1854,3 +1958,9 @@ void CDigitalImageView::OnAviLoad()
 
 
 }
+void CDigitalImageView::MinDiff() {
+
+
+
+}
+

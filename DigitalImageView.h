@@ -68,6 +68,9 @@ public:
 	afx_msg void OnPrewitt();
 	afx_msg void OnSobel();
 	afx_msg void OnAviLoad();
+
+	void MinDiff();
+
 };
 
 #ifndef _DEBUG  // DigitalImageView.cpp의 디버그 버전
