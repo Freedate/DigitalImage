@@ -57,13 +57,22 @@
 #define ID_SOBEL                        32819
 #define ID_32820                        32820
 #define ID_AVI_LOAD                     32821
+#define ID_32822                        32822
+#define ID_SCAILING_BILINEARINTERPOLATION 32823
+#define ID_BILINEARINTERPOLATION_2      32824
+#define ID_BILINEARINTERPOLATION_4      32825
+#define ID_SCAILING_BILINEAR_2          32826
+#define ID_SCAILING_BILINEAR_4          32827
+#define ID_32828                        32828
+#define ID_DOFF                         32829
+#define ID_DIFFEXT                      32830
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        310
-#define _APS_NEXT_COMMAND_VALUE         32822
+#define _APS_NEXT_COMMAND_VALUE         32831
 #define _APS_NEXT_CONTROL_VALUE         1000
 #define _APS_NEXT_SYMED_VALUE           310
 #endif

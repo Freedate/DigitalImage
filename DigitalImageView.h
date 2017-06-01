@@ -71,6 +71,9 @@ public:
 
 	void MinDiff();
 
+	afx_msg void OnScailingBilinear2();
+	afx_msg void OnScailingBilinear4();
+	afx_msg void OnDiffext();
 };
 
 #ifndef _DEBUG  // DigitalImageView.cpp의 디버그 버전

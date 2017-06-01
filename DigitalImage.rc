@@ -193,6 +193,17 @@ BEGIN
         MENUITEM SEPARATOR
         MENUITEM "Prewitt",                     ID_Prewitt
         MENUITEM "Sobel",                       ID_SOBEL
+        MENUITEM SEPARATOR
+        POPUP "Scailing"
+        BEGIN
+            POPUP "Bilinear Interpolation"
+            BEGIN
+                MENUITEM "2-times",                     ID_SCAILING_BILINEAR_2
+                MENUITEM "4-times",                     ID_SCAILING_BILINEAR_4
+            END
+        END
+        MENUITEM SEPARATOR
+        MENUITEM "Difference Extract",          ID_DIFFEXT
     END
 END
 

@@ -52,6 +52,9 @@ BEGIN_MESSAGE_MAP(CDigitalImageView, CView)
 	ON_COMMAND(ID_Prewitt, &CDigitalImageView::OnPrewitt)
 	ON_COMMAND(ID_SOBEL, &CDigitalImageView::OnSobel)
 	ON_COMMAND(ID_AVI_LOAD, &CDigitalImageView::OnAviLoad)
+	ON_COMMAND(ID_SCAILING_BILINEAR_2, &CDigitalImageView::OnScailingBilinear2)
+	ON_COMMAND(ID_SCAILING_BILINEAR_4, &CDigitalImageView::OnScailingBilinear4)
+	ON_COMMAND(ID_DIFFEXT, &CDigitalImageView::OnDiffext)
 END_MESSAGE_MAP()
 
 // CDigitalImageView construction/destruction
@@ -1832,6 +1835,7 @@ void CDigitalImageView::OnSobel()
 
 void CDigitalImageView::OnAviLoad()
 {
+	//로드 및 3SS까지
 	CFileDialog dlg(TRUE, ".avi", NULL, NULL, "AVI File (*.avi)|*.avi||");
 	if (IDOK != dlg.DoModal())
 		return;
@@ -1847,7 +1851,7 @@ void CDigitalImageView::OnAviLoad()
 
 	if (!Capture.isOpened())
 		AfxMessageBox("Error Video");
-
+	int n = 0;
 	Mat prevFrame;
 	for (;;) {
 		Mat currFrame;
@@ -1958,9 +1962,200 @@ void CDigitalImageView::OnAviLoad()
 
 
 }
-void CDigitalImageView::MinDiff() {
 
 
+void CDigitalImageView::OnScailingBilinear2()
+{
+
+	if (rgbBuffer == NULL) {
+		OnBmpLoad();
+	}
+	if (rgbFilteringBuffer != NULL) {
+		for (int i = 0; i < imgHeight; i++) {
+			delete[] rgbFilteringBuffer[i];
+		}
+		delete[] rgbFilteringBuffer;
+	}
+
+	rgbFilteringBuffer = new RGBQUAD*[imgHeight];
+	for (int i = 0; i < imgHeight; i++) {
+		rgbFilteringBuffer[i] = new RGBQUAD[imgWidth];
+	}
+
+
+	for (int i = 0; i < imgHeight; i++) {
+		for (int j = 0; j < imgWidth; j++) {
+			if (i % 2 == 0 && j % 2 == 0) {
+				rgbFilteringBuffer[i][j].rgbRed = rgbBuffer[i / 2][j / 2].rgbRed;
+				rgbFilteringBuffer[i][j].rgbGreen = rgbBuffer[i / 2][j / 2].rgbGreen;
+				rgbFilteringBuffer[i][j].rgbBlue = rgbBuffer[i/2][j/2].rgbBlue;
+			}
+			else if(i % 2 != 0 && j % 2 == 0) {
+				rgbFilteringBuffer[i][j].rgbRed = (rgbBuffer[i / 2][j / 2].rgbRed * 0.5) + (rgbBuffer[(i / 2) + 1][j / 2].rgbRed * 0.5);
+				rgbFilteringBuffer[i][j].rgbGreen = (rgbBuffer[i / 2][j / 2].rgbGreen * 0.5) + (rgbBuffer[(i / 2) + 1][j / 2].rgbGreen * 0.5);
+				rgbFilteringBuffer[i][j].rgbBlue = (rgbBuffer[i / 2][j / 2].rgbBlue * 0.5) + (rgbBuffer[(i / 2)+1][j / 2].rgbBlue * 0.5);
+			}
+		}
+	}
+	for (int i = 0; i < imgHeight; i++) {
+		for (int j = 0; j < imgWidth; j++) {
+			if (j % 2 != 0) {
+				rgbFilteringBuffer[i][j].rgbRed = (rgbFilteringBuffer[i][j - 1].rgbRed * 0.5) + (rgbFilteringBuffer[i][j + 1].rgbRed * 0.5);
+				rgbFilteringBuffer[i][j].rgbGreen = (rgbFilteringBuffer[i][j - 1].rgbGreen * 0.5) + (rgbFilteringBuffer[i][j + 1].rgbGreen * 0.5);
+				rgbFilteringBuffer[i][j].rgbBlue = (rgbFilteringBuffer[i][j-1].rgbBlue * 0.5) + (rgbFilteringBuffer[i][j + 1].rgbBlue * 0.5);
+				
+			}
+		}
+	}
+
+	outText = "Scailing 2Times - Bilinear Interpolation";
+
+	viewType = 5;
+	Invalidate(false);
 
 }
 
+
+void CDigitalImageView::OnScailingBilinear4()
+{
+
+	if (rgbBuffer == NULL) {
+		OnBmpLoad();
+	}
+
+	if (rgbFilteringBuffer != NULL) {
+		for (int i = 0; i < imgHeight; i++) {
+			delete[] rgbFilteringBuffer[i];
+		}
+		delete[] rgbFilteringBuffer;
+	}
+
+	rgbFilteringBuffer = new RGBQUAD*[imgHeight];
+	for (int i = 0; i < imgHeight; i++) {
+		rgbFilteringBuffer[i] = new RGBQUAD[imgWidth];
+	}
+
+
+	for (int i = 0; i < imgHeight; i++) {
+		for (int j = 0; j < imgWidth; j++) {
+			if (i % 4 == 0 && j % 4 == 0) {
+				rgbFilteringBuffer[i][j].rgbRed = rgbBuffer[i / 4][j / 4].rgbRed;
+				rgbFilteringBuffer[i][j].rgbGreen = rgbBuffer[i / 4][j / 4].rgbGreen;
+				rgbFilteringBuffer[i][j].rgbBlue = rgbBuffer[i / 4][j / 4].rgbBlue;
+			}
+			else if (i % 4 != 0 && j % 4 == 0) {
+				if (i % 4 == 1) {
+					rgbFilteringBuffer[i][j].rgbRed = (rgbBuffer[i / 4][j / 4].rgbRed * 0.75) + (rgbBuffer[(i / 4) + 1][j / 4].rgbRed * 0.25);
+					rgbFilteringBuffer[i][j].rgbGreen = (rgbBuffer[i / 4][j / 4].rgbGreen * 0.75) + (rgbBuffer[(i / 4) + 1][j / 4].rgbGreen * 0.25);
+					rgbFilteringBuffer[i][j].rgbBlue = (rgbBuffer[i / 4][j / 4].rgbBlue * 0.75) + (rgbBuffer[(i / 4) + 1][j / 4].rgbBlue * 0.25);
+				}
+				else if (i % 4 == 2) {
+					rgbFilteringBuffer[i][j].rgbRed = (rgbBuffer[i / 4][j / 4].rgbRed * 0.5) + (rgbBuffer[(i / 4) + 1][j / 4].rgbRed * 0.5);
+					rgbFilteringBuffer[i][j].rgbGreen = (rgbBuffer[i / 4][j / 4].rgbGreen * 0.5) + (rgbBuffer[(i / 4) + 1][j / 4].rgbGreen * 0.5);
+					rgbFilteringBuffer[i][j].rgbBlue = (rgbBuffer[i / 4][j / 4].rgbBlue * 0.5) + (rgbBuffer[(i / 4) + 1][j / 4].rgbBlue * 0.5);
+				}
+				else if (i % 4 == 3) {
+					rgbFilteringBuffer[i][j].rgbRed = (rgbBuffer[i / 4][j / 4].rgbRed * 0.25) + (rgbBuffer[(i / 4) + 1][j / 4].rgbRed * 0.75);
+					rgbFilteringBuffer[i][j].rgbGreen = (rgbBuffer[i / 4][j / 4].rgbGreen * 0.25) + (rgbBuffer[(i / 4) + 1][j / 4].rgbGreen * 0.75);
+					rgbFilteringBuffer[i][j].rgbBlue = (rgbBuffer[i / 4][j / 4].rgbBlue * 0.25) + (rgbBuffer[(i / 4) + 1][j / 4].rgbBlue * 0.75);
+				}
+			}
+		}
+	}
+	for (int i = 0; i < imgHeight; i++) {
+		for (int j = 0; j < imgWidth; j++) {
+			if (j % 4 != 0) {
+				if (j % 4 == 1) {
+					rgbFilteringBuffer[i][j].rgbRed = (rgbFilteringBuffer[i][j - 1].rgbRed * 0.75) + (rgbFilteringBuffer[i][j + 3].rgbRed * 0.25);
+					rgbFilteringBuffer[i][j].rgbGreen = (rgbFilteringBuffer[i][j - 1].rgbGreen * 0.75) + (rgbFilteringBuffer[i][j + 3].rgbGreen * 0.25);
+					rgbFilteringBuffer[i][j].rgbBlue = (rgbFilteringBuffer[i][j - 1].rgbBlue * 0.75) + (rgbFilteringBuffer[i][j + 3].rgbBlue * 0.25);
+					
+				}
+				else if (j % 4 == 2) {
+					rgbFilteringBuffer[i][j].rgbRed = (rgbFilteringBuffer[i][j - 2].rgbRed * 0.5) + (rgbFilteringBuffer[i][j + 2].rgbRed * 0.5);
+					rgbFilteringBuffer[i][j].rgbGreen = (rgbFilteringBuffer[i][j - 2].rgbGreen * 0.5) + (rgbFilteringBuffer[i][j + 2].rgbGreen * 0.5);
+					rgbFilteringBuffer[i][j].rgbBlue = (rgbFilteringBuffer[i][j - 2].rgbBlue * 0.5) + (rgbFilteringBuffer[i][j + 2].rgbBlue * 0.5);
+				}
+				else if (j % 4 == 3) {
+					rgbFilteringBuffer[i][j].rgbRed = (rgbFilteringBuffer[i][j - 3].rgbRed * 0.25) + (rgbFilteringBuffer[i][j + 1].rgbRed * 0.75);
+					rgbFilteringBuffer[i][j].rgbGreen = (rgbFilteringBuffer[i][j - 3].rgbGreen * 0.25) + (rgbFilteringBuffer[i][j + 1].rgbGreen * 0.75);
+					rgbFilteringBuffer[i][j].rgbBlue = (rgbFilteringBuffer[i][j - 3].rgbBlue * 0.25) + (rgbFilteringBuffer[i][j + 1].rgbBlue * 0.75);
+				}
+			}
+		}
+	}
+
+	outText = "Scailing 4Times - Bilinear Interpolation";
+
+	viewType = 5;
+	Invalidate(false);
+}
+
+
+void CDigitalImageView::OnDiffext()
+{
+	CFileDialog dlg(TRUE, ".avi", NULL, NULL, "AVI File (*.avi)|*.avi||");
+	if (IDOK != dlg.DoModal())
+		return;
+
+	CString cfilename = dlg.GetPathName();
+	CT2CA strAtl(cfilename);
+	String filename(strAtl);
+
+
+	//AVI 파일 로드
+	VideoCapture Capture;
+	Capture.open(filename);
+
+	if (!Capture.isOpened())
+		AfxMessageBox("Error Video");
+	int n = 0;
+	Mat prevFrame;
+	for (;;) {
+		Mat currFrame;
+		Capture >> currFrame;
+		if (prevFrame.data != nullptr)
+			imshow("prevvideo", prevFrame);
+		if (currFrame.data == nullptr)
+			break;
+		imshow("currvideo", currFrame);
+
+		
+		Mat diff;
+		diff = currFrame - prevFrame;
+
+		for (int j = 0; j < diff.rows; j++)
+		{
+			for (int i = 0; i < diff.cols; i++)
+			{
+				if (diff.at<Vec3b>(j, i)[0]>20) {
+					diff.at<Vec3b>(j, i)[0] = 255;
+					diff.at<Vec3b>(j, i)[1] = 255;
+					diff.at<Vec3b>(j, i)[2] = 255;
+				}
+				if (diff.at<Vec3b>(j, i)[1]>20) {
+					diff.at<Vec3b>(j, i)[0] = 255;
+					diff.at<Vec3b>(j, i)[1] = 255;
+					diff.at<Vec3b>(j, i)[2] = 255;
+				}
+
+				if (diff.at<Vec3b>(j, i)[2] > 20) {
+					diff.at<Vec3b>(j, i)[0] = 255;
+					diff.at<Vec3b>(j, i)[1] = 255;
+					diff.at<Vec3b>(j, i)[2] = 255;
+				}
+
+			}
+		}
+
+
+		if (diff.data == nullptr)
+			break;
+		imshow("diffvideo", diff);
+
+		prevFrame = currFrame;
+		if (waitKey(30) >= 0)
+			break;
+	}
+	AfxMessageBox("Completed");
+}
